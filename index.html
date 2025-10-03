@@ -64,9 +64,7 @@
     align-items: center;
   }
   
-  .endpoint-input {
-    flex: 1;
-    min-width: 300px;
+  .endpoint-input, .model-select, .provider-select {
     background: #0d1117;
     border: 1px solid var(--border-color);
     color: var(--terminal-text);
@@ -76,7 +74,16 @@
     border-radius: 4px;
   }
   
-  .endpoint-input:focus {
+  .endpoint-input {
+    flex: 1;
+    min-width: 250px;
+  }
+  
+  .model-select, .provider-select {
+    min-width: 180px;
+  }
+  
+  .endpoint-input:focus, .model-select:focus, .provider-select:focus {
     outline: none;
     border-color: var(--prompt-color);
     box-shadow: 0 0 5px var(--glow);
@@ -198,6 +205,25 @@
     font-weight: 700;
     margin-bottom: 4px;
   }
+
+  /* Code block styling */
+  pre, code {
+    font-family: 'JetBrains Mono', monospace;
+    background: #11161f;
+    color: #e0e0e0;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  pre {
+    margin: 10px 0;
+  }
   
   .cursor {
     display: inline-block;
@@ -273,18 +299,34 @@
     margin-bottom: 20px;
   }
   
+  .model-badge {
+    display: inline-block;
+    background: rgba(0, 255, 136, 0.1);
+    border: 1px solid var(--prompt-color);
+    color: var(--prompt-color);
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    margin-left: 8px;
+  }
+  
   @media (max-width: 768px) {
     .container {padding: 10px;}
-    .controls {flex-direction: column;}
-    .endpoint-input {min-width: 100%;}
+    .controls {flex-direction: column; align-items: stretch;}
+    .endpoint-input, .model-select, .provider-select {min-width: 100%;}
   }
 </style>
+
+<!-- highlight.js -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
 </head>
 <body>
   <div class="container">
     <div class="header">
       <div class="title">▸ ALEX_072 CLI</div>
-      <div class="subtitle">AI Chat Terminal • Powered by xAI Grok 4 Fast</div>
+      <div class="subtitle">AI Chat Terminal • Multi-Model Support</div>
     </div>
     
     <div class="controls">
@@ -295,6 +337,13 @@
         value="https://alex-072-cli.onrender.com/chat"
         placeholder="API Endpoint URL"
       />
+      <select id="provider" class="provider-select">
+        <option value="openrouter">OpenRouter</option>
+        <option value="ollama">Ollama</option>
+      </select>
+      <select id="model" class="model-select">
+        <option value="">Grok 4 Fast (free)</option>
+      </select>
       <button id="test-btn" class="btn">Test</button>
       <button id="clear-btn" class="btn">Clear</button>
       <button id="help-btn" class="btn">Help</button>
@@ -312,7 +361,7 @@
         <div class="welcome">
           <div class="logo">(^_^)</div>
           <div>Welcome to Alex_072 CLI Terminal</div>
-          <div style="margin-top: 10px;">Type your message below to start chatting...</div>
+          <div style="margin-top: 10px;">Select a model and start chatting...</div>
         </div>
       </div>
       
@@ -340,8 +389,38 @@
   const testBtn = document.getElementById('test-btn');
   const clearBtn = document.getElementById('clear-btn');
   const helpBtn = document.getElementById('help-btn');
+  const providerEl = document.getElementById('provider');
+  const modelEl = document.getElementById('model');
   
   let messageCount = 0;
+
+  const OLLAMA_MODELS = [
+    {value: 'gpt-oss:120b-cloud', label: 'GPT OSS 120B Cloud'},
+    {value: 'gpt-oss:20b-cloud', label: 'GPT OSS 20B Cloud'},
+    {value: 'deepseek-v3.1:671b-cloud', label: 'DeepSeek V3.1 671B Cloud'},
+    {value: 'qwen3-coder:480b-cloud', label: 'Qwen3 Coder 480B Cloud'}
+  ];
+
+  function updateModelOptions() {
+    const provider = providerEl.value;
+    modelEl.innerHTML = '';
+    
+    if (provider === 'openrouter') {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'Grok 4 Fast (free)';
+      modelEl.appendChild(opt);
+      modelEl.disabled = true;
+    } else {
+      modelEl.disabled = false;
+      OLLAMA_MODELS.forEach(model => {
+        const opt = document.createElement('option');
+        opt.value = model.value;
+        opt.textContent = model.label;
+        modelEl.appendChild(opt);
+      });
+    }
+  }
 
   function addLine(html, className = 'line') {
     const div = document.createElement('div');
@@ -383,6 +462,21 @@
   }
 
   async function typeText(element, text, speed = 15) {
+    // detect fenced code blocks
+    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+
+    if (codeBlockRegex.test(text)) {
+      element.innerHTML = text.replace(codeBlockRegex, (match, lang, code) => {
+        const language = lang || 'plaintext';
+        const escaped = escapeHtml(code);
+        return `<pre><code class="language-${language}">${escaped}</code></pre>`;
+      });
+      hljs.highlightAll();
+      terminal.scrollTop = terminal.scrollHeight;
+      return;
+    }
+
+    // typing effect for plain text
     element.textContent = '';
     for (let i = 0; i < text.length; i++) {
       element.textContent += text[i];
@@ -401,7 +495,9 @@
       return;
     }
 
-    // Clear welcome message on first use
+    const provider = providerEl.value;
+    const model = modelEl.value;
+
     if (messageCount === 0) {
       terminal.innerHTML = '';
     }
@@ -415,16 +511,28 @@
     setStatus('Thinking...', '#ffbd2e');
 
     try {
-      const url = `${endpoint}?message=${encodeURIComponent(message)}`;
-      addMeta(`Sending to ${endpoint.split('/')[2]}...`);
+      let url = `${endpoint}?message=${encodeURIComponent(message)}&provider=${provider}`;
+      if (model) {
+        url += `&model=${encodeURIComponent(model)}`;
+      }
+      
+      const modelName = model || 'Grok 4 Fast';
+      addMeta(`Using ${modelName} via ${provider}...`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000);
       
       const response = await fetch(url, {
         method: 'GET',
-        headers: {'Accept': 'text/plain'}
+        headers: {'Accept': 'text/plain'},
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
       }
 
       const text = await response.text();
@@ -433,9 +541,16 @@
       
       setStatus('Connected', '#27c93f');
     } catch (error) {
-      addMeta(`Error: ${error.message}`);
+      let errorMsg = error.message;
+      if (error.name === 'AbortError') {
+        errorMsg = 'Request timed out. Server might be waking up (Render free tier). Please retry in 30s.';
+      } else if (errorMsg === 'Failed to fetch') {
+        errorMsg = 'Cannot connect to server. Check: 1) Endpoint URL is correct, 2) Server is running, 3) CORS is enabled';
+      }
+      
+      addMeta(`Error: ${errorMsg}`);
       const aiElement = addAI('');
-      aiElement.textContent = `Sorry, I encountered an error: ${error.message}`;
+      aiElement.textContent = `Sorry, I encountered an error: ${errorMsg}`;
       aiElement.style.color = '#ff5f56';
       setStatus('Error', '#ff5f56');
     } finally {
@@ -445,79 +560,63 @@
     }
   }
 
+  function showHelp() {
+    addMeta('Available Commands:');
+    const helpText = `- Type your message and press ENTER or SEND
+- Endpoint: set your server URL (default: https://alex-072-cli.onrender.com/chat)
+- Provider: select OpenRouter or Ollama
+- Model: select available models for provider
+- Test: send a test request to verify connection
+- Clear: clear the terminal screen
+- Help: show this message`;
+    const aiElement = addAI('');
+    aiElement.textContent = helpText;
+  }
+
   async function testConnection() {
     const endpoint = endpointEl.value.trim();
-    addMeta(`Testing connection to: ${endpoint}`);
+    if (!endpoint) {
+      addMeta('Error: Please set API endpoint URL');
+      return;
+    }
+
+    addMeta('Testing connection...');
     setStatus('Testing...', '#ffbd2e');
-    
+
     try {
-      const response = await fetch(endpoint + '?message=ping', {method: 'GET'});
-      if (response.ok) {
-        addMeta('✓ Connection successful!');
-        setStatus('Connected', '#27c93f');
-      } else {
-        throw new Error(`HTTP ${response.status}`);
-      }
+      const url = `${endpoint}?message=ping`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {'Accept': 'text/plain'},
+        timeout: 15000
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+
+      const text = await response.text();
+      addMeta(`Connection OK. Server responded: "${text}"`);
+      setStatus('Connected', '#27c93f');
     } catch (error) {
-      addMeta(`✗ Connection failed: ${error.message}`);
-      setStatus('Disconnected', '#ff5f56');
+      addMeta(`Test failed: ${error.message}`);
+      setStatus('Error', '#ff5f56');
     }
   }
 
-  function clearTerminal() {
-    terminal.innerHTML = '<div class="welcome"><div class="logo">(^_^)</div><div>Terminal cleared</div></div>';
-    messageCount = 0;
-    addMeta('History cleared');
-  }
-
-  function showHelp() {
-    if (messageCount === 0) terminal.innerHTML = '';
-    messageCount++;
-    
-    addLine(`
-      <div class="ai-msg">
-        <div class="ai-msg-header">Alex_072 CLI Help:</div>
-        <div style="margin-top: 8px; line-height: 1.8;">
-          <strong>Commands:</strong><br>
-          • Type naturally and press Enter<br>
-          • Click "Test" to verify connection<br>
-          • Click "Clear" to reset terminal<br>
-          • Ctrl+L to clear (shortcut)<br><br>
-          <strong>Features:</strong><br>
-          • Real-time AI responses<br>
-          • Typewriter effect<br>
-          • Context-aware conversations<br>
-          • Connection status monitoring<br><br>
-          <strong>Model:</strong> xAI Grok 4 Fast (free)<br>
-          <strong>Backend:</strong> OpenRouter API
-        </div>
-      </div>
-    `);
-  }
-
-  // Event listeners
   sendBtn.addEventListener('click', sendMessage);
-  testBtn.addEventListener('click', testConnection);
-  clearBtn.addEventListener('click', clearTerminal);
-  helpBtn.addEventListener('click', showHelp);
-
-  input.addEventListener('keydown', (e) => {
+  input.addEventListener('keypress', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
   });
-
-  // Keyboard shortcuts
-  document.addEventListener('keydown', (e) => {
-    if (e.ctrlKey && e.key === 'l') {
-      e.preventDefault();
-      clearTerminal();
-    }
+  testBtn.addEventListener('click', testConnection);
+  clearBtn.addEventListener('click', () => {
+    terminal.innerHTML = '<div class="welcome"><div class="logo">(^_^)</div><div>Welcome to Alex_072 CLI Terminal</div><div style="margin-top: 10px;">Select a model and start chatting...</div></div>';
+    messageCount = 0;
   });
-
-  // Focus input on load
-  input.focus();
+  helpBtn.addEventListener('click', showHelp);
+  providerEl.addEventListener('change', updateModelOptions);
+  updateModelOptions();
 })();
 </script>
 </body>
