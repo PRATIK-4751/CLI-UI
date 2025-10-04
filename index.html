@@ -7,7 +7,7 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
   
-  :root{
+  :root {
     --terminal-bg: #0a0e1a;
     --terminal-text: #e0e0e0;
     --prompt-color: #00ff88;
@@ -16,6 +16,23 @@
     --meta-color: #7f8c8d;
     --border-color: #1e2936;
     --glow: rgba(0, 255, 136, 0.3);
+    --input-bg: #0d1117;
+    --terminal-window-bg: #0d1117;
+    --header-bg: #161b22;
+  }
+  
+  [data-theme="light"] {
+    --terminal-bg: #f5f5f5;
+    --terminal-text: #2c3e50;
+    --prompt-color: #00b359;
+    --user-color: #0288d1;
+    --ai-color: #d81b60;
+    --meta-color: #607d8b;
+    --border-color: #e0e0e0;
+    --glow: rgba(0, 179, 89, 0.2);
+    --input-bg: #ffffff;
+    --terminal-window-bg: #ffffff;
+    --header-bg: #f0f0f0;
   }
   
   * {margin: 0; padding: 0; box-sizing: border-box;}
@@ -26,6 +43,43 @@
     background: var(--terminal-bg);
     color: var(--terminal-text);
     overflow: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    position: relative;
+  }
+  
+  #particles {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+  
+  .particle {
+    position: absolute;
+    background: var(--prompt-color);
+    border-radius: 50%;
+    opacity: 0.3;
+    animation: float linear infinite;
+  }
+  
+  @keyframes float {
+    0% {
+      transform: translateY(100vh) translateX(0) scale(0);
+      opacity: 0;
+    }
+    10% {
+      opacity: 0.3;
+    }
+    90% {
+      opacity: 0.3;
+    }
+    100% {
+      transform: translateY(-100px) translateX(var(--drift)) scale(1);
+      opacity: 0;
+    }
   }
   
   .container {
@@ -35,12 +89,40 @@
     padding: 20px;
     max-width: 1200px;
     margin: 0 auto;
+    animation: fadeIn 0.5s ease-out;
+    position: relative;
+    z-index: 1;
+  }
+  
+  @keyframes fadeIn {
+    from {opacity: 0; transform: translateY(-10px);}
+    to {opacity: 1; transform: translateY(0);}
   }
   
   .header {
-    padding: 15px 0;
-    border-bottom: 2px solid var(--border-color);
+    padding: 15px 20px;
+    background: rgba(13, 17, 23, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
     margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+  
+  [data-theme="light"] .header {
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  
+  .header-left {
+    flex: 1;
+    min-width: 200px;
   }
   
   .title {
@@ -56,31 +138,82 @@
     color: var(--meta-color);
   }
   
+  .theme-toggle {
+    background: rgba(13, 17, 23, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--terminal-text);
+    padding: 8px 16px;
+    font-family: inherit;
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+  }
+  
+  [data-theme="light"] .theme-toggle {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  
+  .theme-toggle:hover {
+    border-color: var(--prompt-color);
+    box-shadow: 0 0 12px var(--glow);
+    transform: rotate(180deg);
+  }
+  
   .controls {
     display: flex;
     gap: 10px;
     margin-bottom: 15px;
     flex-wrap: wrap;
     align-items: center;
+    background: rgba(13, 17, 23, 0.5);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  
+  [data-theme="light"] .controls {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.05);
   }
   
   .endpoint-input, .model-select, .provider-select {
-    background: #0d1117;
-    border: 1px solid var(--border-color);
+    background: rgba(13, 17, 23, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--terminal-text);
     padding: 8px 12px;
     font-family: inherit;
     font-size: 12px;
-    border-radius: 4px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+  
+  [data-theme="light"] .endpoint-input,
+  [data-theme="light"] .model-select,
+  [data-theme="light"] .provider-select {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.1);
   }
   
   .endpoint-input {
     flex: 1;
-    min-width: 250px;
+    min-width: 200px;
   }
   
   .model-select, .provider-select {
-    min-width: 180px;
+    min-width: 140px;
   }
   
   .endpoint-input:focus, .model-select:focus, .provider-select:focus {
@@ -90,15 +223,23 @@
   }
   
   .btn {
-    background: #0d1117;
-    border: 1px solid var(--border-color);
+    background: rgba(13, 17, 23, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--terminal-text);
     padding: 8px 16px;
     font-family: inherit;
     font-size: 12px;
     cursor: pointer;
-    border-radius: 4px;
-    transition: all 0.2s;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+  
+  [data-theme="light"] .btn {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.1);
   }
   
   .btn:hover {
@@ -120,22 +261,37 @@
   
   .terminal-window {
     flex: 1;
-    background: #0d1117;
-    border: 1px solid var(--border-color);
+    background: rgba(13, 17, 23, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(30, 41, 54, 0.5);
     border-radius: 6px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    animation: slideUp 0.4s ease-out;
+    min-height: 0;
+  }
+  
+  [data-theme="light"] .terminal-window {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(224, 224, 224, 0.5);
+  }
+  
+  @keyframes slideUp {
+    from {opacity: 0; transform: translateY(20px);}
+    to {opacity: 1; transform: translateY(0);}
   }
   
   .terminal-header {
-    background: #161b22;
+    background: var(--header-bg);
     padding: 10px 15px;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-shrink: 0;
   }
   
   .dot {
@@ -157,23 +313,28 @@
   .terminal-body {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 20px;
     font-size: 14px;
     line-height: 1.6;
+    min-height: 0;
+    word-wrap: break-word;
   }
   
   .terminal-body::-webkit-scrollbar {width: 8px;}
-  .terminal-body::-webkit-scrollbar-track {background: #0d1117;}
+  .terminal-body::-webkit-scrollbar-track {background: var(--input-bg);}
   .terminal-body::-webkit-scrollbar-thumb {background: var(--border-color); border-radius: 4px;}
   .terminal-body::-webkit-scrollbar-thumb:hover {background: #2d3748;}
   
   .line {
     margin-bottom: 12px;
-    animation: fadeIn 0.3s ease-in;
+    animation: fadeInUp 0.3s ease-in;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
-  @keyframes fadeIn {
-    from {opacity: 0; transform: translateY(5px);}
+  @keyframes fadeInUp {
+    from {opacity: 0; transform: translateY(10px);}
     to {opacity: 1; transform: translateY(0);}
   }
   
@@ -185,6 +346,7 @@
   
   .user-msg {
     color: var(--user-color);
+    word-wrap: break-word;
   }
   
   .user-msg::before {
@@ -198,6 +360,8 @@
     padding-left: 12px;
     border-left: 2px solid var(--ai-color);
     margin-top: 8px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   .ai-msg-header {
@@ -206,11 +370,10 @@
     margin-bottom: 4px;
   }
 
-  /* Code block styling */
   pre, code {
     font-family: 'JetBrains Mono', monospace;
-    background: #11161f;
-    color: #e0e0e0;
+    background: var(--input-bg);
+    color: var(--terminal-text);
     border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 10px;
@@ -219,6 +382,7 @@
     overflow-x: auto;
     white-space: pre-wrap;
     word-break: break-word;
+    max-width: 100%;
   }
 
   pre {
@@ -240,17 +404,20 @@
   }
   
   .input-area {
-    background: #0d1117;
+    background: var(--input-bg);
     border-top: 1px solid var(--border-color);
     padding: 15px;
     display: flex;
     gap: 10px;
+    flex-shrink: 0;
+    align-items: center;
   }
   
   .prompt-symbol {
     color: var(--prompt-color);
     font-weight: 700;
-    line-height: 38px;
+    font-size: 18px;
+    flex-shrink: 0;
   }
   
   .input-field {
@@ -262,6 +429,7 @@
     font-size: 14px;
     padding: 10px;
     outline: none;
+    min-width: 0;
   }
   
   .send-btn {
@@ -274,7 +442,9 @@
     font-weight: 700;
     cursor: pointer;
     border-radius: 4px;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   
   .send-btn:hover:not(:disabled) {
@@ -297,6 +467,12 @@
   .welcome .logo {
     font-size: 48px;
     margin-bottom: 20px;
+    animation: bounce 2s ease-in-out infinite;
+  }
+  
+  @keyframes bounce {
+    0%, 100% {transform: translateY(0);}
+    50% {transform: translateY(-10px);}
   }
   
   .model-badge {
@@ -311,22 +487,98 @@
   }
   
   @media (max-width: 768px) {
-    .container {padding: 10px;}
-    .controls {flex-direction: column; align-items: stretch;}
-    .endpoint-input, .model-select, .provider-select {min-width: 100%;}
+    .container {
+      padding: 10px;
+    }
+    
+    .header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .theme-toggle {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+    }
+    
+    .title {
+      font-size: 20px;
+    }
+    
+    .controls {
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+    }
+    
+    .endpoint-input, .model-select, .provider-select, .btn {
+      width: 100%;
+      min-width: 100%;
+    }
+    
+    .terminal-body {
+      padding: 15px;
+      font-size: 13px;
+    }
+    
+    .input-area {
+      padding: 10px;
+      gap: 8px;
+    }
+    
+    .input-field {
+      font-size: 13px;
+      padding: 8px;
+    }
+    
+    .send-btn {
+      padding: 8px 16px;
+      font-size: 12px;
+    }
+    
+    .welcome .logo {
+      font-size: 36px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .title {
+      font-size: 18px;
+    }
+    
+    .subtitle {
+      font-size: 10px;
+    }
+    
+    .terminal-body {
+      padding: 10px;
+      font-size: 12px;
+    }
+    
+    .input-area {
+      flex-wrap: wrap;
+    }
+    
+    .send-btn {
+      width: 100%;
+    }
   }
 </style>
 
-<!-- highlight.js -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
 </head>
 <body>
+  <div id="particles"></div>
   <div class="container">
     <div class="header">
-      <div class="title">▸ ALEX_072 CLI</div>
-      <div class="subtitle">AI Chat Terminal • Multi-Model Support</div>
+      <div class="header-left">
+        <div class="title">▸ ALEX_072 CLI</div>
+        <div class="subtitle">AI Chat Terminal • Multi-Model Support</div>
+      </div>
+      <button id="theme-toggle" class="theme-toggle" title="Toggle theme">🌙</button>
     </div>
     
     <div class="controls">
@@ -391,8 +643,10 @@
   const helpBtn = document.getElementById('help-btn');
   const providerEl = document.getElementById('provider');
   const modelEl = document.getElementById('model');
+  const themeToggle = document.getElementById('theme-toggle');
   
   let messageCount = 0;
+  let currentTheme = 'dark';
 
   const OLLAMA_MODELS = [
     {value: 'gpt-oss:120b-cloud', label: 'GPT OSS 120B Cloud'},
@@ -400,6 +654,28 @@
     {value: 'deepseek-v3.1:671b-cloud', label: 'DeepSeek V3.1 671B Cloud'},
     {value: 'qwen3-coder:480b-cloud', label: 'Qwen3 Coder 480B Cloud'}
   ];
+
+  // Theme management
+  function initTheme() {
+    const saved = localStorage.getItem('theme') || 'dark';
+    setTheme(saved);
+  }
+
+  function setTheme(theme) {
+    currentTheme = theme;
+    if (theme === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+      themeToggle.textContent = '☀️';
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      themeToggle.textContent = '🌙';
+    }
+    localStorage.setItem('theme', theme);
+  }
+
+  function toggleTheme() {
+    setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+  }
 
   function updateModelOptions() {
     const provider = providerEl.value;
@@ -462,7 +738,6 @@
   }
 
   async function typeText(element, text, speed = 15) {
-    // detect fenced code blocks
     const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
 
     if (codeBlockRegex.test(text)) {
@@ -476,7 +751,6 @@
       return;
     }
 
-    // typing effect for plain text
     element.textContent = '';
     for (let i = 0; i < text.length; i++) {
       element.textContent += text[i];
@@ -568,6 +842,7 @@
 - Model: select available models for provider
 - Test: send a test request to verify connection
 - Clear: clear the terminal screen
+- Theme: toggle between day/night mode
 - Help: show this message`;
     const aiElement = addAI('');
     aiElement.textContent = helpText;
@@ -602,6 +877,7 @@
     }
   }
 
+  // Event listeners
   sendBtn.addEventListener('click', sendMessage);
   input.addEventListener('keypress', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -615,8 +891,41 @@
     messageCount = 0;
   });
   helpBtn.addEventListener('click', showHelp);
+  themeToggle.addEventListener('click', toggleTheme);
   providerEl.addEventListener('change', updateModelOptions);
+  
+  // Initialize
+  initTheme();
   updateModelOptions();
+  input.focus();
+  
+  // Particle system
+  function createParticles() {
+    const container = document.getElementById('particles');
+    const particleCount = window.innerWidth < 768 ? 15 : 30;
+    
+    for (let i = 0; i < particleCount; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      
+      const size = Math.random() * 4 + 1;
+      const startX = Math.random() * 100;
+      const drift = (Math.random() - 0.5) * 200;
+      const duration = Math.random() * 10 + 15;
+      const delay = Math.random() * 5;
+      
+      particle.style.width = `${size}px`;
+      particle.style.height = `${size}px`;
+      particle.style.left = `${startX}%`;
+      particle.style.setProperty('--drift', `${drift}px`);
+      particle.style.animationDuration = `${duration}s`;
+      particle.style.animationDelay = `${delay}s`;
+      
+      container.appendChild(particle);
+    }
+  }
+  
+  createParticles();
 })();
 </script>
 </body>
